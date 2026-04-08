@@ -1,10 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+
+    <!-- ========================= -->
+    <!-- Primary brand colors -->
+    <!-- ========================= -->
+    <color name="primaryColor">#2C5F8A</color>
+    <color name="primaryDark">#1A3F61</color>
+    <color name="primaryLight">#4A7FA8</color>
+    <color name="accentColor">#D4732B</color>
+    <color name="accentLight">#E89A5A</color>
+
+    <!-- ========================= -->
+    <!-- Backgrounds -->
+    <!-- ========================= -->
+    <color name="bgPrimary">#F5F7FA</color>
+    <color name="surfaceColor">#FFFFFF</color>
+    <color name="splashBg">#2C5F8A</color>
+
+    <!-- ========================= -->
+    <!-- Text -->
+    <!-- ========================= -->
+    <color name="textPrimary">#1A2340</color>
+    <color name="textSecondary">#6B7A99</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+
+    <!-- ========================= -->
+    <!-- UI Elements -->
+    <!-- ========================= -->
+    <color name="dividerColor">#E5E9F0</color>
+    <color name="chipOutline">#E8EEF4</color>
+    <color name="errorColor">#D32F2F</color>
+    <color name="successColor">#2E7D32</color>
+
+    <!-- ========================= -->
+    <!-- REQUIRED (Fix for themes.xml errors) -->
+    <!-- ========================= -->
+    <color name="purple_500">#2C5F8A</color> <!-- mapped to your primary -->
+    <color name="purple_700">#1A3F61</color>
+    <color name="teal_200">#D4732B</color>   <!-- mapped to accent -->
+    <color name="teal_700">#A65A22</color>
+
+    <!-- ========================= -->
+    <!-- Legacy (AppCompat compatibility) -->
+    <!-- ========================= -->
+    <color name="colorPrimary">#2C5F8A</color>
+    <color name="colorPrimaryDark">#1A3F61</color>
+    <color name="colorAccent">#D4732B</color>
+
 </resources>

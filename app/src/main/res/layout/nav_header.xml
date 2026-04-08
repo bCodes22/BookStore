@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="180dp"
+    android:background="@color/primaryColor"
+    android:padding="16dp"
+    android:orientation="vertical"
+    android:gravity="bottom">
+
+    <!-- User Name -->
+    <TextView
+        android:id="@+id/tvNavUserName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="User Name"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <!-- User Email -->
+    <TextView
+        android:id="@+id/tvNavUserEmail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="email@example.com"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:alpha="0.85" />
+
+</LinearLayout>
