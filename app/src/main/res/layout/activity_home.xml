@@ -47,7 +47,7 @@
                     android:elevation="4dp"
                     android:layout_marginBottom="20dp"/>
 
-                <!-- Quick Actions -->
+                <!-- Quick Actions Label -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -63,14 +63,19 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
+                    <!-- Books Card -->
                     <LinearLayout
+                        android:id="@+id/cardBooks"
                         android:layout_width="0dp"
                         android:layout_height="120dp"
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:gravity="center"
                         android:background="@drawable/bg_card"
-                        android:padding="12dp">
+                        android:padding="12dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
 
                         <ImageView
                             android:layout_width="40dp"
@@ -90,14 +95,19 @@
                         android:layout_width="10dp"
                         android:layout_height="match_parent"/>
 
+                    <!-- Orders Card -->
                     <LinearLayout
+                        android:id="@+id/cardOrders"
                         android:layout_width="0dp"
                         android:layout_height="120dp"
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:gravity="center"
                         android:background="@drawable/bg_card"
-                        android:padding="12dp">
+                        android:padding="12dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
 
                         <ImageView
                             android:layout_width="40dp"
@@ -122,14 +132,19 @@
                     android:orientation="horizontal"
                     android:layout_marginTop="12dp">
 
+                    <!-- Wishlist Card -->
                     <LinearLayout
+                        android:id="@+id/cardWishlist"
                         android:layout_width="0dp"
                         android:layout_height="120dp"
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:gravity="center"
                         android:background="@drawable/bg_card"
-                        android:padding="12dp">
+                        android:padding="12dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
 
                         <ImageView
                             android:layout_width="40dp"
@@ -149,14 +164,19 @@
                         android:layout_width="10dp"
                         android:layout_height="match_parent"/>
 
+                    <!-- Profile Card -->
                     <LinearLayout
+                        android:id="@+id/cardProfile"
                         android:layout_width="0dp"
                         android:layout_height="120dp"
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:gravity="center"
                         android:background="@drawable/bg_card"
-                        android:padding="12dp">
+                        android:padding="12dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
 
                         <ImageView
                             android:layout_width="40dp"

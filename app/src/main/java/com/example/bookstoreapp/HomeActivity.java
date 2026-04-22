@@ -3,6 +3,8 @@ package com.example.bookstoreapp;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -41,9 +43,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // Set user name in nav header
-        android.view.View headerView = navigationView.getHeaderView(0);
-        TextView tvNavName = headerView.findViewById(R.id.tvNavUserName);
+        // Nav header
+        View headerView = navigationView.getHeaderView(0);
+        TextView tvNavName  = headerView.findViewById(R.id.tvNavUserName);
         TextView tvNavEmail = headerView.findViewById(R.id.tvNavUserEmail);
         tvNavName.setText(sessionManager.getUserName());
         tvNavEmail.setText(sessionManager.getUserEmail());
@@ -51,6 +53,27 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         // Welcome message
         TextView tvWelcome = findViewById(R.id.tvWelcome);
         tvWelcome.setText("Welcome back,\n" + sessionManager.getUserName() + "! 👋");
+
+        // Quick Action cards
+        LinearLayout cardBooks    = findViewById(R.id.cardBooks);
+        LinearLayout cardOrders   = findViewById(R.id.cardOrders);
+        LinearLayout cardWishlist = findViewById(R.id.cardWishlist);
+        LinearLayout cardProfile  = findViewById(R.id.cardProfile);
+
+        cardBooks.setOnClickListener(v ->
+                Toast.makeText(this, "Books - Coming Soon", Toast.LENGTH_SHORT).show());
+
+        cardOrders.setOnClickListener(v ->
+                Toast.makeText(this, "Orders - Coming Soon", Toast.LENGTH_SHORT).show());
+
+        cardWishlist.setOnClickListener(v ->
+                Toast.makeText(this, "Wishlist - Coming Soon", Toast.LENGTH_SHORT).show());
+
+        cardProfile.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, ProfileActivity.class);
+            startActivity(intent);
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+        });
     }
 
     @Override
@@ -59,7 +82,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         if (id == R.id.nav_home) {
             // Already home
         } else if (id == R.id.nav_profile) {
-            Toast.makeText(this, "Profile - Coming Soon", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, ProfileActivity.class));
         } else if (id == R.id.nav_orders) {
             Toast.makeText(this, "Orders - Coming Soon", Toast.LENGTH_SHORT).show();
         } else if (id == R.id.nav_wishlist) {
