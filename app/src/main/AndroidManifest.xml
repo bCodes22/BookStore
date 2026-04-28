@@ -26,6 +26,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".ProfileActivity" />
+        <activity android:name=".WishlistActivity" />
+        <activity android:name=".BooksActivity" />
     </application>
 
 </manifest>

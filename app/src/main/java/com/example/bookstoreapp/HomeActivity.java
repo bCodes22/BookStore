@@ -60,14 +60,18 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         LinearLayout cardWishlist = findViewById(R.id.cardWishlist);
         LinearLayout cardProfile  = findViewById(R.id.cardProfile);
 
-        cardBooks.setOnClickListener(v ->
-                Toast.makeText(this, "Books - Coming Soon", Toast.LENGTH_SHORT).show());
+        cardBooks.setOnClickListener(v -> {
+            startActivity(new Intent(HomeActivity.this, BooksActivity.class));
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+        });
 
         cardOrders.setOnClickListener(v ->
                 Toast.makeText(this, "Orders - Coming Soon", Toast.LENGTH_SHORT).show());
 
-        cardWishlist.setOnClickListener(v ->
-                Toast.makeText(this, "Wishlist - Coming Soon", Toast.LENGTH_SHORT).show());
+        cardWishlist.setOnClickListener(v -> {
+            startActivity(new Intent(HomeActivity.this, WishlistActivity.class));
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+        });
 
         cardProfile.setOnClickListener(v -> {
             Intent intent = new Intent(HomeActivity.this, ProfileActivity.class);
@@ -83,10 +87,12 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             // Already home
         } else if (id == R.id.nav_profile) {
             startActivity(new Intent(this, ProfileActivity.class));
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
         } else if (id == R.id.nav_orders) {
             Toast.makeText(this, "Orders - Coming Soon", Toast.LENGTH_SHORT).show();
         } else if (id == R.id.nav_wishlist) {
-            Toast.makeText(this, "Wishlist - Coming Soon", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, WishlistActivity.class));
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
         } else if (id == R.id.nav_logout) {
             sessionManager.logout();
             Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
