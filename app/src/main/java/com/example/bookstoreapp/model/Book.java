@@ -7,7 +7,7 @@ public class Book {
 
     private String title;
     private String author;
-    private String coverUrl;      // image link
+    private String imageUrl;      // image link
     private String coverColor;    // fallback color for placeholder UI
     private double price;
     private String description;
@@ -25,8 +25,8 @@ public class Book {
     public void setTitle(String title) { this.title = title; }
     public String getAuthor() { return author; }
     public void setAuthor(String author) { this.author = author; }
-    public String getCoverUrl() { return coverUrl; }
-    public void setCoverUrl(String coverUrl) { this.coverUrl = coverUrl; }
+    public String getimageUrl() { return imageUrl; }
+    public void setimageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public String getCoverColor() { return coverColor; }
     public void setCoverColor(String coverColor) { this.coverColor = coverColor; }
     public double getPrice() { return price; }

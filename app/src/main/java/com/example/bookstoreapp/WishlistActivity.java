@@ -173,13 +173,13 @@ public class WishlistActivity extends AppCompatActivity {
             holder.tvPrice.setText(String.format("$%.2f", book.getPrice()));
 
             // Load Cover Image with Glide
-            if (book.getCoverUrl() != null && !book.getCoverUrl().isEmpty()) {
+            if (book.getimageUrl() != null && !book.getimageUrl().isEmpty()) {
                 holder.tvCoverTitle.setVisibility(View.GONE);
 
                 // Assuming you add an ImageView to your item_wishlist.xml just like item_book.xml
                 if (holder.ivCoverImage != null) {
                     Glide.with(WishlistActivity.this)
-                            .load(book.getCoverUrl())
+                            .load(book.getimageUrl())
                             .placeholder(R.drawable.ic_launcher_background)
                             .into(holder.ivCoverImage);
                 }

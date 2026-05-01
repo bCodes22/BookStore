@@ -104,8 +104,16 @@ public class BooksActivity extends AppCompatActivity implements BookAdapter.OnBo
 
     @Override
     public void onBookClick(Book book) {
-        // TODO: Open BookDetailActivity and pass the book.getId()
-        Toast.makeText(this, "Selected: " + book.getTitle(), Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, BookDetailActivity.class);
+
+        // Pass the Firestore document ID to the next screen
+        // We will use this ID to fetch the full book details from the database
+        intent.putExtra("BOOK_ID", book.getId());
+
+        startActivity(intent);
+
+        // Keep your smooth transitions!
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
     }
 
     @Override

@@ -10,6 +10,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BookstoreApp">
         <activity android:name=".SignUpActivity"></activity>
+        <activity android:name=".BookDetailActivity" />
         <activity
             android:name=".LoginActivity"
             android:exported="false"

@@ -23,7 +23,7 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
 
     private final Context context;
     private final List<Book> bookList;
-    private final String userId; // CHANGED: Firestore uses String UIDs, not ints
+    private final String userId;
     private final FirestoreHelper dbHelper;
     private final OnBookClickListener clickListener;
 
@@ -35,7 +35,7 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         this.context = context;
         this.bookList = bookList;
         this.userId = userId;
-        this.dbHelper = new FirestoreHelper(); // Removed context parameter to match our new class
+        this.dbHelper = new FirestoreHelper();
         this.clickListener = listener;
     }
 
@@ -55,15 +55,15 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         holder.tvAuthor.setText(book.getAuthor());
         holder.tvPrice.setText(String.format("$%.2f", book.getPrice()));
 
-        // 2. Load Cover Image with Glide
-        if (book.getCoverUrl() != null && !book.getCoverUrl().isEmpty()) {
+        // 2. Load Cover Image with Glide (FIXED: getImageUrl())
+        if (book.getimageUrl() != null && !book.getimageUrl().isEmpty()) {
             // Hide the fallback text if we have an image
             holder.tvCoverTitle.setVisibility(View.GONE);
 
             Glide.with(context)
-                    .load(book.getCoverUrl())
-                    .placeholder(R.drawable.ic_launcher_background) // Add a placeholder drawable here
-                    .into(holder.ivCoverImage); // See XML note below
+                    .load(book.getimageUrl())
+                    .placeholder(R.drawable.ic_launcher_background)
+                    .into(holder.ivCoverImage);
         } else {
             // Fallback to your old color frame logic if no image exists
             holder.tvCoverTitle.setVisibility(View.VISIBLE);
@@ -75,7 +75,7 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
             }
         }
 
-        // 3. Set Initial Wishlist State (From the Book model, NOT the database)
+        // 3. Set Initial Wishlist State
         boolean isWished = book.isInWishlist();
         holder.tvWishlistToggle.setText(isWished ? "♥" : "♡");
         holder.tvWishlistToggle.setTextColor(isWished ? Color.parseColor("#FF4444") : Color.WHITE);
@@ -86,7 +86,7 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
 
             // Flip the state instantly for the user
             book.setInWishlist(!currentlyWished);
-            notifyItemChanged(position); // Refreshes just this one row
+            notifyItemChanged(position);
 
             if (currentlyWished) {
                 // Background cloud delete
@@ -136,7 +136,7 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
 
     static class BookViewHolder extends RecyclerView.ViewHolder {
         View coverFrame;
-        ImageView ivCoverImage; // ADDED THIS
+        ImageView ivCoverImage;
         TextView tvCoverTitle;
         TextView tvTitle;
         TextView tvAuthor;
@@ -146,7 +146,7 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         BookViewHolder(@NonNull View itemView) {
             super(itemView);
             coverFrame       = itemView.findViewById(R.id.coverFrame);
-            ivCoverImage     = itemView.findViewById(R.id.ivCoverImage); // ADDED THIS
+            ivCoverImage     = itemView.findViewById(R.id.ivCoverImage);
             tvCoverTitle     = itemView.findViewById(R.id.tvCoverTitle);
             tvTitle          = itemView.findViewById(R.id.tvTitle);
             tvAuthor         = itemView.findViewById(R.id.tvAuthor);
