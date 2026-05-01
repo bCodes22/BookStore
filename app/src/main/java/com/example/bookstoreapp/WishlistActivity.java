@@ -219,7 +219,15 @@ public class WishlistActivity extends AppCompatActivity {
 
             // Book click
             holder.itemView.setOnClickListener(v -> {
-                Toast.makeText(WishlistActivity.this, book.getTitle(), Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(WishlistActivity.this, BookDetailActivity.class);
+
+                // Pass the Firestore document ID to the next screen
+                intent.putExtra("BOOK_ID", book.getId());
+
+                startActivity(intent);
+
+                // Add the smooth slide animation
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
             });
         }
 
