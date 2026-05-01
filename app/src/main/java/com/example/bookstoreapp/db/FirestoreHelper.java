@@ -2,6 +2,7 @@ package com.example.bookstoreapp.db;
 
 import com.example.bookstoreapp.model.Book;
 import com.example.bookstoreapp.model.User;
+import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import android.util.Log;
 
 public class FirestoreHelper {
 

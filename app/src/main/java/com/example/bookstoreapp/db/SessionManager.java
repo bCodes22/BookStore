@@ -48,7 +48,7 @@ public class SessionManager {
      */
     public void createSession(User user) {
         editor.putBoolean(KEY_IS_LOGGED_IN, true);
-        editor.putInt(KEY_USER_ID, user.getId());
+        editor.putString(KEY_USER_ID, user.getId());
         editor.putString(KEY_USER_NAME, user.getName());
         editor.putString(KEY_USER_EMAIL, user.getEmail());
         editor.putString(KEY_AUTH_TYPE, user.getAuthType());

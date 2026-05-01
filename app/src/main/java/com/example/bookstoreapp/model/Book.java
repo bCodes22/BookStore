@@ -1,7 +1,10 @@
 package com.example.bookstoreapp.model;
 
 public class Book {
-    private int id;
+
+    // Changed from int to String to handle Firestore Document IDs
+    private String id;
+
     private String title;
     private String author;
     private String coverUrl;      // image link
@@ -12,8 +15,12 @@ public class Book {
 
     public Book() {}
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    // Updated Getter
+    public String getId() { return id; }
+
+    // Updated Setter
+    public void setId(String id) { this.id = id; }
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getAuthor() { return author; }

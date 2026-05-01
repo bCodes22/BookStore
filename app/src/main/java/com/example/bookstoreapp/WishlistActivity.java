@@ -1,11 +1,14 @@
 package com.example.bookstoreapp;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -16,10 +19,16 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.bookstoreapp.db.DatabaseHelper;
-import com.example.bookstoreapp.db.SessionManager;
+import com.bumptech.glide.Glide;
+import com.example.bookstoreapp.db.FirestoreHelper;
 import com.example.bookstoreapp.model.Book;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldPath;
+import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class WishlistActivity extends AppCompatActivity {
@@ -28,8 +37,11 @@ public class WishlistActivity extends AppCompatActivity {
     private LinearLayout layoutEmpty;
     private TextView tvWishlistCount;
 
-    private DatabaseHelper dbHelper;
-    private SessionManager sessionManager;
+    // Firebase Replacements
+    private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
+    private FirestoreHelper dbHelper;
+    private String currentUserId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,9 +54,21 @@ public class WishlistActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        dbHelper       = new DatabaseHelper(this);
-        sessionManager = new SessionManager(this);
+        // Initialize Firebase
+        mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
+        dbHelper = new FirestoreHelper();
 
+        // Security check
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user == null) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+        currentUserId = user.getUid();
+
+        // Setup UI
         rvWishlist       = findViewById(R.id.rvWishlist);
         layoutEmpty      = findViewById(R.id.layoutEmpty);
         tvWishlistCount  = findViewById(R.id.tvWishlistCount);
@@ -55,29 +79,65 @@ public class WishlistActivity extends AppCompatActivity {
     }
 
     private void loadWishlist() {
-        // ── TODO (Firebase): Replace this with a Firebase query like:
-        //    db.collection("wishlists")
-        //      .whereEqualTo("userId", sessionManager.getUserId())
-        //      .get()
-        //      .addOnSuccessListener(snapshot -> {
-        //          List<Book> books = snapshot.toObjects(Book.class);
-        //          showWishlist(books);
-        //      });
-        // ────────────────────────────────────────────────────────────
+        // Step 1: Find all wishlist entries for this user
+        db.collection("Wishlist")
+                .whereEqualTo("userId", currentUserId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<String> bookIds = new ArrayList<>();
+                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                        bookIds.add(doc.getString("bookId"));
+                    }
 
-        int userId = sessionManager.getUserId();
-        List<Book> wishlistBooks = dbHelper.getWishlistBooks(userId);
-        showWishlist(wishlistBooks);
+                    if (bookIds.isEmpty()) {
+                        showWishlist(new ArrayList<>());
+                    } else {
+                        // Step 2: Fetch the actual book details using the retrieved IDs
+                        fetchBookDetails(bookIds);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("Wishlist", "Error loading wishlist IDs", e);
+                    Toast.makeText(this, "Failed to load wishlist", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void fetchBookDetails(List<String> bookIds) {
+        // Firestore's 'whereIn' is a great way to fetch multiple specific documents at once.
+        // Note: Firestore limits 'whereIn' to 10 items per query. If your wishlist grows larger
+        // than 10, you would need to batch these requests. For now, this handles standard lists perfectly.
+
+        // We chunk the list to avoid the 10-item limit crash
+        List<Book> finalBookList = new ArrayList<>();
+
+        // Let's do a simple batching approach for scalability
+        int limit = Math.min(bookIds.size(), 10);
+        List<String> firstBatch = bookIds.subList(0, limit);
+
+        db.collection("Books")
+                .whereIn(FieldPath.documentId(), firstBatch)
+                .get()
+                .addOnSuccessListener(snapshots -> {
+                    for (DocumentSnapshot doc : snapshots) {
+                        Book book = doc.toObject(Book.class);
+                        if (book != null) {
+                            book.setId(doc.getId());
+                            finalBookList.add(book);
+                        }
+                    }
+                    showWishlist(finalBookList);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("Wishlist", "Error fetching book data", e);
+                });
     }
 
     private void showWishlist(List<Book> books) {
         if (books == null || books.isEmpty()) {
-            // Show empty state
             layoutEmpty.setVisibility(View.VISIBLE);
             rvWishlist.setVisibility(View.GONE);
             tvWishlistCount.setVisibility(View.GONE);
         } else {
-            // Show list
             layoutEmpty.setVisibility(View.GONE);
             rvWishlist.setVisibility(View.VISIBLE);
             tvWishlistCount.setVisibility(View.VISIBLE);
@@ -107,44 +167,58 @@ public class WishlistActivity extends AppCompatActivity {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             Book book = books.get(position);
 
-            // Cover color
-            try {
-                holder.coverFrame.setBackgroundColor(Color.parseColor(book.getCoverColor()));
-            } catch (Exception e) {
-                holder.coverFrame.setBackgroundColor(Color.parseColor("#2C5F8A"));
-            }
-
-            holder.tvCoverTitle.setText(book.getTitle());
+            // Load Text
             holder.tvTitle.setText(book.getTitle());
             holder.tvAuthor.setText(book.getAuthor());
             holder.tvPrice.setText(String.format("$%.2f", book.getPrice()));
 
-            // Remove from wishlist when linked to server
-            holder.tvRemove.setOnClickListener(v -> {
-                // ── TODO (Firebase): Replace with Firebase delete:
-                //    db.collection("wishlists")
-                //      .document(userId + "_" + book.getId())
-                //      .delete();
-                // ────────────────────────────────────────────────
+            // Load Cover Image with Glide
+            if (book.getCoverUrl() != null && !book.getCoverUrl().isEmpty()) {
+                holder.tvCoverTitle.setVisibility(View.GONE);
 
-                int userId = sessionManager.getUserId();
-                dbHelper.removeFromWishlist(userId, book.getId());
-                books.remove(position);
-                notifyItemRemoved(position);
-                notifyItemRangeChanged(position, books.size());
-                Toast.makeText(WishlistActivity.this, "Removed from wishlist", Toast.LENGTH_SHORT).show();
-
-                // If list is now empty, show empty state
-                if (books.isEmpty()) {
-                    showWishlist(books);
-                } else {
-                    tvWishlistCount.setText(books.size() + " saved book" + (books.size() > 1 ? "s" : ""));
+                // Assuming you add an ImageView to your item_wishlist.xml just like item_book.xml
+                if (holder.ivCoverImage != null) {
+                    Glide.with(WishlistActivity.this)
+                            .load(book.getCoverUrl())
+                            .placeholder(R.drawable.ic_launcher_background)
+                            .into(holder.ivCoverImage);
                 }
+            } else {
+                holder.tvCoverTitle.setVisibility(View.VISIBLE);
+                holder.tvCoverTitle.setText(book.getTitle());
+                try {
+                    holder.coverFrame.setBackgroundColor(Color.parseColor(book.getCoverColor()));
+                } catch (Exception e) {
+                    holder.coverFrame.setBackgroundColor(Color.parseColor("#2C5F8A"));
+                }
+            }
+
+            // Remove from wishlist using your FirestoreHelper
+            holder.tvRemove.setOnClickListener(v -> {
+                dbHelper.removeFromWishlist(currentUserId, book.getId(), new FirestoreHelper.OnActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        books.remove(position);
+                        notifyItemRemoved(position);
+                        notifyItemRangeChanged(position, books.size());
+                        Toast.makeText(WishlistActivity.this, "Removed from wishlist", Toast.LENGTH_SHORT).show();
+
+                        if (books.isEmpty()) {
+                            showWishlist(books);
+                        } else {
+                            tvWishlistCount.setText(books.size() + " saved book" + (books.size() > 1 ? "s" : ""));
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        Toast.makeText(WishlistActivity.this, "Failed to remove item", Toast.LENGTH_SHORT).show();
+                    }
+                });
             });
 
             // Book click
             holder.itemView.setOnClickListener(v -> {
-                // TODO: Open BookDetailActivity
                 Toast.makeText(WishlistActivity.this, book.getTitle(), Toast.LENGTH_SHORT).show();
             });
         }
@@ -154,11 +228,16 @@ public class WishlistActivity extends AppCompatActivity {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             FrameLayout coverFrame;
+            ImageView ivCoverImage; // Added for Glide
             TextView tvCoverTitle, tvTitle, tvAuthor, tvPrice, tvRemove;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 coverFrame   = itemView.findViewById(R.id.coverFrame);
+
+                // Make sure to add this ID to your item_wishlist.xml!
+                ivCoverImage = itemView.findViewById(R.id.ivCoverImage);
+
                 tvCoverTitle = itemView.findViewById(R.id.tvCoverTitle);
                 tvTitle      = itemView.findViewById(R.id.tvTitle);
                 tvAuthor     = itemView.findViewById(R.id.tvAuthor);

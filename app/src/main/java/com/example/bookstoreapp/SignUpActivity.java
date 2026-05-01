@@ -3,6 +3,7 @@ package com.example.bookstoreapp;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -14,13 +15,30 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.bookstoreapp.db.DatabaseHelper;
-import com.example.bookstoreapp.db.SessionManager;
-import com.example.bookstoreapp.model.User;
+// Firebase & Google Auth Imports
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SignUpActivity extends AppCompatActivity {
+
+    private static final int RC_SIGN_IN = 9001;
 
     private EditText etFullName, etEmail, etPassword, etConfirmPassword;
     private Button btnSignUp, btnGoogleSignUp;
@@ -29,16 +47,24 @@ public class SignUpActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private LinearLayout formContainer;
 
-    private DatabaseHelper dbHelper;
-    private SessionManager sessionManager;
+    // Firebase variables replacing DatabaseHelper
+    private FirebaseAuth mAuth;
+    private GoogleSignInClient mGoogleSignInClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
 
-        dbHelper = new DatabaseHelper(this);
-        sessionManager = new SessionManager(this);
+        // Initialize Firebase
+        mAuth = FirebaseAuth.getInstance();
+
+        // Configure Google Sign-In
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
+        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
         initViews();
         startEntryAnimations();
@@ -76,9 +102,7 @@ public class SignUpActivity extends AppCompatActivity {
             handleGoogleSignUp();
         });
 
-        tvLoginLink.setOnClickListener(v -> {
-            onBackPressed();
-        });
+        tvLoginLink.setOnClickListener(v -> onBackPressed());
 
         // Live password strength
         etPassword.addTextChangedListener(new android.text.TextWatcher() {
@@ -131,6 +155,7 @@ public class SignUpActivity extends AppCompatActivity {
         String password = etPassword.getText().toString().trim();
         String confirmPassword = etConfirmPassword.getText().toString().trim();
 
+        // Standard UI Validation
         if (TextUtils.isEmpty(name)) {
             etFullName.setError("Full name is required");
             etFullName.requestFocus();
@@ -142,27 +167,16 @@ public class SignUpActivity extends AppCompatActivity {
             etFullName.requestFocus();
             return;
         }
-        if (TextUtils.isEmpty(email)) {
-            etEmail.setError("Email is required");
-            etEmail.requestFocus();
-            shakeView(etEmail);
-            return;
-        }
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (TextUtils.isEmpty(email) || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             etEmail.setError("Enter a valid email");
             etEmail.requestFocus();
             shakeView(etEmail);
             return;
         }
-        if (TextUtils.isEmpty(password)) {
-            etPassword.setError("Password is required");
-            etPassword.requestFocus();
-            shakeView(etPassword);
-            return;
-        }
-        if (password.length() < 6) {
+        if (TextUtils.isEmpty(password) || password.length() < 6) {
             etPassword.setError("Password must be at least 6 characters");
             etPassword.requestFocus();
+            shakeView(etPassword);
             return;
         }
         if (!password.equals(confirmPassword)) {
@@ -178,68 +192,101 @@ public class SignUpActivity extends AppCompatActivity {
         }
 
         showLoading(true);
-        String finalEmail = email;
-        String finalPassword = password;
-        String finalName = name;
 
-        new android.os.Handler().postDelayed(() -> {
-            if (dbHelper.isEmailRegistered(finalEmail)) {
-                showLoading(false);
-                etEmail.setError("Email already registered");
-                etEmail.requestFocus();
-                shakeView(etEmail);
-                return;
-            }
-
-            User newUser = new User(finalName, finalEmail, finalPassword, "email");
-            long id = dbHelper.registerUser(newUser);
-            showLoading(false);
-
-            if (id != -1) {
-                newUser.setId((int) id);
-                sessionManager.createSession(newUser);
-                Toast.makeText(SignUpActivity.this, "Account created! Welcome, " + finalName + "!", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(SignUpActivity.this, HomeActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
-                overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
-                finish();
-            } else {
-                Toast.makeText(SignUpActivity.this, "Registration failed. Please try again.", Toast.LENGTH_SHORT).show();
-            }
-        }, 800);
+        // Real Firebase Registration
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        saveUserToFirestore(user, name, "email");
+                    } else {
+                        showLoading(false);
+                        try {
+                            throw task.getException();
+                        } catch (FirebaseAuthUserCollisionException e) {
+                            etEmail.setError("Email already registered");
+                            etEmail.requestFocus();
+                            shakeView(etEmail);
+                        } catch (Exception e) {
+                            Toast.makeText(SignUpActivity.this, "Registration failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
     }
 
     private void handleGoogleSignUp() {
         showLoading(true);
-        new android.os.Handler().postDelayed(() -> {
-            showLoading(false);
-            String googleEmail = "google.user@gmail.com";
-            String googleName = "Google User";
+        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
 
-            User existingUser = dbHelper.getUserByEmail(googleEmail);
-            if (existingUser == null) {
-                User googleUser = new User(googleName, googleEmail, "GOOGLE_AUTH", "google");
-                long id = dbHelper.registerUser(googleUser);
-                googleUser.setId((int) id);
-                sessionManager.createSession(googleUser);
-            } else {
-                sessionManager.createSession(existingUser);
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == RC_SIGN_IN) {
+            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+            try {
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                firebaseAuthWithGoogle(account.getIdToken());
+            } catch (ApiException e) {
+                showLoading(false);
+                Log.w("GoogleAuth", "Google sign up failed", e);
+                Toast.makeText(this, "Google Sign-Up Cancelled", Toast.LENGTH_SHORT).show();
             }
+        }
+    }
 
-            Toast.makeText(SignUpActivity.this, "Signed up with Google!", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(SignUpActivity.this, HomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
-            finish();
-        }, 1200);
+    private void firebaseAuthWithGoogle(String idToken) {
+        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
+        mAuth.signInWithCredential(credential)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        // Google provides the name automatically
+                        saveUserToFirestore(user, user.getDisplayName(), "google");
+                    } else {
+                        showLoading(false);
+                        Toast.makeText(this, "Authentication Failed", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    // Handles writing the profile to the database for both Email and Google signups
+    private void saveUserToFirestore(FirebaseUser user, String name, String authType) {
+        if (user == null) return;
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Map<String, Object> userProfile = new HashMap<>();
+        userProfile.put("name", name);
+        userProfile.put("email", user.getEmail());
+        userProfile.put("authType", authType);
+        userProfile.put("createdAt", System.currentTimeMillis());
+
+        // SetOptions.merge() ensures we don't accidentally wipe existing data
+        // if a user clicks "Sign Up with Google" but already has an account.
+        db.collection("Users").document(user.getUid())
+                .set(userProfile, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    showLoading(false);
+                    Toast.makeText(SignUpActivity.this, "Account created! Welcome, " + name + "!", Toast.LENGTH_SHORT).show();
+                    goToHomeActivity();
+                })
+                .addOnFailureListener(e -> {
+                    showLoading(false);
+                    Toast.makeText(SignUpActivity.this, "Failed to create profile.", Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void showLoading(boolean show) {
         progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
         btnSignUp.setEnabled(!show);
         btnGoogleSignUp.setEnabled(!show);
+        etFullName.setEnabled(!show);
+        etEmail.setEnabled(!show);
+        etPassword.setEnabled(!show);
+        etConfirmPassword.setEnabled(!show);
+        cbTerms.setEnabled(!show);
     }
 
     private void animateButton(View view) {
@@ -250,6 +297,14 @@ public class SignUpActivity extends AppCompatActivity {
     private void shakeView(View view) {
         Animation shake = AnimationUtils.loadAnimation(this, R.anim.shake);
         view.startAnimation(shake);
+    }
+
+    private void goToHomeActivity() {
+        Intent intent = new Intent(SignUpActivity.this, HomeActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
+        finish();
     }
 
     @Override

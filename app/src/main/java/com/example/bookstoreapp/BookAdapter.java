@@ -2,16 +2,19 @@ package com.example.bookstoreapp;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.bookstoreapp.db.DatabaseHelper;
+import com.bumptech.glide.Glide;
+import com.example.bookstoreapp.db.FirestoreHelper;
 import com.example.bookstoreapp.model.Book;
 
 import java.util.List;
@@ -20,20 +23,19 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
 
     private final Context context;
     private final List<Book> bookList;
-    private final int userId;
-    private final DatabaseHelper dbHelper;
+    private final String userId; // CHANGED: Firestore uses String UIDs, not ints
+    private final FirestoreHelper dbHelper;
+    private final OnBookClickListener clickListener;
 
     public interface OnBookClickListener {
         void onBookClick(Book book);
     }
 
-    private OnBookClickListener clickListener;
-
-    public BookAdapter(Context context, List<Book> bookList, int userId, OnBookClickListener listener) {
+    public BookAdapter(Context context, List<Book> bookList, String userId, OnBookClickListener listener) {
         this.context = context;
         this.bookList = bookList;
         this.userId = userId;
-        this.dbHelper = new DatabaseHelper(context);
+        this.dbHelper = new FirestoreHelper(); // Removed context parameter to match our new class
         this.clickListener = listener;
     }
 
@@ -48,43 +50,80 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
     public void onBindViewHolder(@NonNull BookViewHolder holder, int position) {
         Book book = bookList.get(position);
 
-        // Cover color
-        try {
-            holder.coverFrame.setBackgroundColor(Color.parseColor(book.getCoverColor()));
-        } catch (Exception e) {
-            holder.coverFrame.setBackgroundColor(Color.parseColor("#2C5F8A"));
-        }
-
-        // Cover title
-        holder.tvCoverTitle.setText(book.getTitle());
-
-        // Info
+        // 1. Load Text Data
         holder.tvTitle.setText(book.getTitle());
         holder.tvAuthor.setText(book.getAuthor());
         holder.tvPrice.setText(String.format("$%.2f", book.getPrice()));
 
-        // Wishlist state
-        boolean wished = dbHelper.isInWishlist(userId, book.getId());
-        holder.tvWishlistToggle.setText(wished ? "♥" : "♡");
-        holder.tvWishlistToggle.setTextColor(wished ? Color.parseColor("#FF4444") : Color.WHITE);
+        // 2. Load Cover Image with Glide
+        if (book.getCoverUrl() != null && !book.getCoverUrl().isEmpty()) {
+            // Hide the fallback text if we have an image
+            holder.tvCoverTitle.setVisibility(View.GONE);
 
-        // Wishlist toggle click
+            Glide.with(context)
+                    .load(book.getCoverUrl())
+                    .placeholder(R.drawable.ic_launcher_background) // Add a placeholder drawable here
+                    .into(holder.ivCoverImage); // See XML note below
+        } else {
+            // Fallback to your old color frame logic if no image exists
+            holder.tvCoverTitle.setVisibility(View.VISIBLE);
+            holder.tvCoverTitle.setText(book.getTitle());
+            try {
+                holder.coverFrame.setBackgroundColor(Color.parseColor(book.getCoverColor()));
+            } catch (Exception e) {
+                holder.coverFrame.setBackgroundColor(Color.parseColor("#2C5F8A"));
+            }
+        }
+
+        // 3. Set Initial Wishlist State (From the Book model, NOT the database)
+        boolean isWished = book.isInWishlist();
+        holder.tvWishlistToggle.setText(isWished ? "♥" : "♡");
+        holder.tvWishlistToggle.setTextColor(isWished ? Color.parseColor("#FF4444") : Color.WHITE);
+
+        // 4. Handle Wishlist Clicks (Optimistic Update)
         holder.tvWishlistToggle.setOnClickListener(v -> {
-            boolean currentlyWished = dbHelper.isInWishlist(userId, book.getId());
+            boolean currentlyWished = book.isInWishlist();
+
+            // Flip the state instantly for the user
+            book.setInWishlist(!currentlyWished);
+            notifyItemChanged(position); // Refreshes just this one row
+
             if (currentlyWished) {
-                dbHelper.removeFromWishlist(userId, book.getId());
-                holder.tvWishlistToggle.setText("♡");
-                holder.tvWishlistToggle.setTextColor(Color.WHITE);
-                Toast.makeText(context, "Removed from wishlist", Toast.LENGTH_SHORT).show();
+                // Background cloud delete
+                dbHelper.removeFromWishlist(userId, book.getId(), new FirestoreHelper.OnActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Toast.makeText(context, "Removed from wishlist", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        // Rollback UI if network fails
+                        book.setInWishlist(true);
+                        notifyItemChanged(position);
+                        Toast.makeText(context, "Failed to remove", Toast.LENGTH_SHORT).show();
+                    }
+                });
             } else {
-                dbHelper.addToWishlist(userId, book.getId());
-                holder.tvWishlistToggle.setText("♥");
-                holder.tvWishlistToggle.setTextColor(Color.parseColor("#FF4444"));
-                Toast.makeText(context, "Added to wishlist", Toast.LENGTH_SHORT).show();
+                // Background cloud add
+                dbHelper.addToWishlist(userId, book.getId(), new FirestoreHelper.OnActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Toast.makeText(context, "Added to wishlist", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        // Rollback UI if network fails
+                        book.setInWishlist(false);
+                        notifyItemChanged(position);
+                        Toast.makeText(context, "Failed to add", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         });
 
-        // Book card click
+        // 5. Book Card Click
         holder.itemView.setOnClickListener(v -> {
             if (clickListener != null) clickListener.onBookClick(book);
         });
@@ -97,6 +136,7 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
 
     static class BookViewHolder extends RecyclerView.ViewHolder {
         View coverFrame;
+        ImageView ivCoverImage; // ADDED THIS
         TextView tvCoverTitle;
         TextView tvTitle;
         TextView tvAuthor;
@@ -106,6 +146,7 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         BookViewHolder(@NonNull View itemView) {
             super(itemView);
             coverFrame       = itemView.findViewById(R.id.coverFrame);
+            ivCoverImage     = itemView.findViewById(R.id.ivCoverImage); // ADDED THIS
             tvCoverTitle     = itemView.findViewById(R.id.tvCoverTitle);
             tvTitle          = itemView.findViewById(R.id.tvTitle);
             tvAuthor         = itemView.findViewById(R.id.tvAuthor);

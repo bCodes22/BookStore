@@ -1,27 +1,29 @@
 package com.example.bookstoreapp.model;
 
 public class User {
-    private int id;
+
+    // Change this from int to String
+    private String id;
+
     private String name;
     private String email;
     private String password;
-    private String authType; // "email" or "google"
+    private String authType;
     private long createdAt;
 
-    public User() {}
-
-    public User(String name, String email, String password, String authType) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
-        this.authType = authType;
-        this.createdAt = System.currentTimeMillis();
+    public User() {
+        // Empty constructor needed for Firestore
+    }
+    // Getters and Setters
+// Update your getter
+    public String getId() {
+        return id;
     }
 
-    // Getters and Setters
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
-
+    // Update your setter
+    public void setId(String id) {
+        this.id = id;
+    }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 

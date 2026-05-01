@@ -14,15 +14,29 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.bookstoreapp.db.DatabaseHelper;
-import com.example.bookstoreapp.db.SessionManager;
-import com.example.bookstoreapp.model.User;
+// Firebase & Google Auth Imports
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
-import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity {
+
+    private static final int RC_SIGN_IN = 9001;
 
     private EditText etEmail, etPassword;
     private Button btnLogin, btnGoogleSignIn;
@@ -30,23 +44,31 @@ public class LoginActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private LinearLayout formContainer;
 
-    private DatabaseHelper dbHelper;
-    private SessionManager sessionManager;
+    // Firebase variables replacing DatabaseHelper
+    private FirebaseAuth mAuth;
+    private GoogleSignInClient mGoogleSignInClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        dbHelper = new DatabaseHelper(this);
-        dbHelper.getWritableDatabase();
-        dbHelper.registerUser(
-                new User("Test", "test@test.com", "123456", "email")
-        );
-        sessionManager = new SessionManager(this);
-        File dbFile = getDatabasePath("bookstore.db");
-        Log.d("DB_PATH", dbFile.getAbsolutePath());
-        Log.d("DB_EXISTS", String.valueOf(dbFile.exists()));
+        // Initialize Firebase Auth
+        mAuth = FirebaseAuth.getInstance();
+
+        // 1. Auto-Login Check: If a session exists, skip the login screen
+        if (mAuth.getCurrentUser() != null) {
+            goToHomeActivity();
+            return; // Stop running onCreate
+        }
+
+        // 2. Configure Google Sign-In
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id)) // Requires google-services.json
+                .requestEmail()
+                .build();
+        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+
         initViews();
         startEntryAnimations();
         setListeners();
@@ -65,7 +87,6 @@ public class LoginActivity extends AppCompatActivity {
 
     private void startEntryAnimations() {
         Animation slideInLeft = AnimationUtils.loadAnimation(this, R.anim.slide_in_left);
-        Animation slideInRight = AnimationUtils.loadAnimation(this, R.anim.slide_in_right);
         Animation fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in);
 
         formContainer.startAnimation(slideInLeft);
@@ -89,37 +110,22 @@ public class LoginActivity extends AppCompatActivity {
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
         });
 
-        tvForgotPassword.setOnClickListener(v -> {
-            showForgotPasswordDialog();
-        });
+        tvForgotPassword.setOnClickListener(v -> showForgotPasswordDialog());
     }
 
     private void handleLogin() {
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
 
-        if (TextUtils.isEmpty(email)) {
-            etEmail.setError("Email is required");
-            etEmail.requestFocus();
-            shakeView(etEmail);
-            return;
-        }
-
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        // UI Validation
+        if (TextUtils.isEmpty(email) || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             etEmail.setError("Enter a valid email");
             etEmail.requestFocus();
             shakeView(etEmail);
             return;
         }
 
-        if (TextUtils.isEmpty(password)) {
-            etPassword.setError("Password is required");
-            etPassword.requestFocus();
-            shakeView(etPassword);
-            return;
-        }
-
-        if (password.length() < 6) {
+        if (TextUtils.isEmpty(password) || password.length() < 6) {
             etPassword.setError("Password must be at least 6 characters");
             etPassword.requestFocus();
             shakeView(etPassword);
@@ -128,54 +134,76 @@ public class LoginActivity extends AppCompatActivity {
 
         showLoading(true);
 
-        // Simulate network delay for future AWS integration
-        new android.os.Handler().postDelayed(() -> {
-            User user = dbHelper.loginUser(email, password);
-            showLoading(false);
-
-            if (user != null) {
-                sessionManager.createSession(user);
-                Toast.makeText(LoginActivity.this, "Welcome back, " + user.getName() + "!", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
-                overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
-                finish();
-            } else {
-                Toast.makeText(LoginActivity.this, "Invalid email or password", Toast.LENGTH_SHORT).show();
-                shakeView(etPassword);
-                etPassword.setText("");
-            }
-        }, 800);
+        // Real Firebase Email/Password Auth
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    showLoading(false);
+                    if (task.isSuccessful()) {
+                        Toast.makeText(LoginActivity.this, "Welcome back!", Toast.LENGTH_SHORT).show();
+                        goToHomeActivity();
+                    } else {
+                        Toast.makeText(LoginActivity.this, "Invalid email or password", Toast.LENGTH_SHORT).show();
+                        shakeView(etPassword);
+                        etPassword.setText("");
+                    }
+                });
     }
 
     private void handleGoogleSignIn() {
         showLoading(true);
-        // Simulated Google Sign-In - ready to replace with actual Google Auth SDK
-        // For AWS: replace with Cognito Hosted UI or Google Identity Services
-        new android.os.Handler().postDelayed(() -> {
-            showLoading(false);
-            // Simulate a Google user
-            String googleEmail = "google.user@gmail.com";
-            String googleName = "Google User";
+        // Launch Google's native account picker
+        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
 
-            User existingUser = dbHelper.getUserByEmail(googleEmail);
-            if (existingUser == null) {
-                User googleUser = new User(googleName, googleEmail, "GOOGLE_AUTH", "google");
-                long id = dbHelper.registerUser(googleUser);
-                googleUser.setId((int) id);
-                sessionManager.createSession(googleUser);
-            } else {
-                sessionManager.createSession(existingUser);
+    // Catch the result of the Google Account Picker
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == RC_SIGN_IN) {
+            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+            try {
+                // Successful Google sign-in, now authenticate with Firebase
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                firebaseAuthWithGoogle(account.getIdToken());
+            } catch (ApiException e) {
+                showLoading(false);
+                Log.w("GoogleAuth", "Google sign in failed", e);
+                Toast.makeText(this, "Google Sign-In Cancelled", Toast.LENGTH_SHORT).show();
             }
+        }
+    }
 
-            Toast.makeText(LoginActivity.this, "Signed in with Google!", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
-            finish();
-        }, 1200);
+    private void firebaseAuthWithGoogle(String idToken) {
+        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
+        mAuth.signInWithCredential(credential)
+                .addOnCompleteListener(this, task -> {
+                    showLoading(false);
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        saveGoogleUserToFirestore(user);
+                        Toast.makeText(LoginActivity.this, "Signed in with Google!", Toast.LENGTH_SHORT).show();
+                        goToHomeActivity();
+                    } else {
+                        Toast.makeText(this, "Firebase Authentication Failed", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    // Ensures Google Users get a profile in your database for Wishlists/Carts
+    private void saveGoogleUserToFirestore(FirebaseUser user) {
+        if (user == null) return;
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Map<String, Object> userProfile = new HashMap<>();
+        userProfile.put("name", user.getDisplayName());
+        userProfile.put("email", user.getEmail());
+        userProfile.put("authType", "google");
+
+        // Merge ensures we don't overwrite their data if they've logged in before
+        db.collection("Users").document(user.getUid())
+                .set(userProfile, SetOptions.merge());
     }
 
     private void showForgotPasswordDialog() {
@@ -192,8 +220,15 @@ public class LoginActivity extends AppCompatActivity {
         builder.setPositiveButton("Send Reset Link", (dialog, which) -> {
             String email = input.getText().toString().trim();
             if (!TextUtils.isEmpty(email)) {
-                Toast.makeText(LoginActivity.this,
-                        "Password reset link sent to " + email, Toast.LENGTH_LONG).show();
+                // Real Firebase Password Reset
+                mAuth.sendPasswordResetEmail(email)
+                        .addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                Toast.makeText(LoginActivity.this, "Password reset link sent to " + email, Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(LoginActivity.this, "Error sending reset link.", Toast.LENGTH_SHORT).show();
+                            }
+                        });
             }
         });
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
@@ -204,6 +239,8 @@ public class LoginActivity extends AppCompatActivity {
         progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
         btnLogin.setEnabled(!show);
         btnGoogleSignIn.setEnabled(!show);
+        etEmail.setEnabled(!show);
+        etPassword.setEnabled(!show);
     }
 
     private void animateButton(View view) {
@@ -214,5 +251,13 @@ public class LoginActivity extends AppCompatActivity {
     private void shakeView(View view) {
         Animation shake = AnimationUtils.loadAnimation(this, R.anim.shake);
         view.startAnimation(shake);
+    }
+
+    private void goToHomeActivity() {
+        Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
+        finish();
     }
 }

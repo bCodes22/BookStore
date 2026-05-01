@@ -22,17 +22,24 @@
             android:layout_width="match_parent"
             android:layout_height="130dp">
 
+            <ImageView
+                android:id="@+id/ivCoverImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="TODO" />
+
             <!-- Cover Title -->
             <TextView
                 android:id="@+id/tvCoverTitle"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
+                android:lineSpacingMultiplier="1.2"
                 android:padding="6dp"
                 android:textColor="#FFFFFF"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:lineSpacingMultiplier="1.2"/>
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
             <!-- Wishlist heart button -->
             <TextView
