@@ -15,6 +15,7 @@ import androidx.appcompat.widget.Toolbar;
 import com.bumptech.glide.Glide;
 import com.example.bookstoreapp.db.FirestoreHelper;
 import com.example.bookstoreapp.model.Book;
+import com.example.bookstoreapp.model.CartManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -141,10 +142,10 @@ public class BookDetailActivity extends AppCompatActivity {
         });
 
         btnAddToCart.setOnClickListener(v -> {
-            // We will wire this up when we build the Cart functionality!
-            Toast.makeText(this, "Added to Cart (Coming Soon!)", Toast.LENGTH_SHORT).show();
+            // Add the current book to our local cart
+            CartManager.getInstance().addToCart(book);
+            Toast.makeText(this, "Added to Cart!", Toast.LENGTH_SHORT).show();
         });
-
         // Show UI, Hide Spinner
         setUiVisibility(View.VISIBLE);
         progressBar.setVisibility(View.GONE);
@@ -171,5 +172,27 @@ public class BookDetailActivity extends AppCompatActivity {
     public void onBackPressed() {
         super.onBackPressed();
         overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+    }
+    // 1. This method draws the menu onto the Toolbar
+    @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_top_bar, menu);
+        return true;
+    }
+
+    // 2. This method listens for clicks on that menu
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        if (item.getItemId() == R.id.action_cart) {
+            // User clicked the cart icon!
+            android.content.Intent intent = new android.content.Intent(this, CartActivity.class);
+            startActivity(intent);
+            // Optional: add your slide animations here
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+            return true;
+        }
+
+        // This handles the default back arrow if it exists
+        return super.onOptionsItemSelected(item);
     }
 }

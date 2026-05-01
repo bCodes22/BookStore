@@ -2,6 +2,7 @@ package com.example.bookstoreapp.db;
 
 import com.example.bookstoreapp.model.Book;
 import com.example.bookstoreapp.model.User;
+import com.example.bookstoreapp.model.Order;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -127,6 +128,14 @@ public class FirestoreHelper {
                 })
                 .addOnFailureListener(listener::onFailure);
     }
+    public void placeOrder(Order order, OnActionListener listener) {
+        // We let Firestore auto-generate a random receipt ID by calling .document() empty
+        db.collection("Orders").document()
+                .set(order)
+                .addOnSuccessListener(aVoid -> listener.onSuccess())
+                .addOnFailureListener(listener::onFailure);
+    }
+
     public void listenForBookUpdates() {
         db.collection("Books")
                 .addSnapshotListener((snapshots, error) -> {

@@ -19,6 +19,7 @@
             android:name=".HomeActivity"
             android:exported="false"
             android:theme="@style/Theme.BookstoreApp" />
+        <activity android:name=".CartActivity" />
         <activity android:name=".SplashActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

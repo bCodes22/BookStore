@@ -180,4 +180,26 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             super.onBackPressed();
         }
     }
+    // 1. This method draws the menu onto the Toolbar
+    @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_top_bar, menu);
+        return true;
+    }
+
+    // 2. This method listens for clicks on that menu
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        if (item.getItemId() == R.id.action_cart) {
+            // User clicked the cart icon!
+            android.content.Intent intent = new android.content.Intent(this, CartActivity.class);
+            startActivity(intent);
+            // Optional: add your slide animations here
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+            return true;
+        }
+
+        // This handles the default back arrow if it exists
+        return super.onOptionsItemSelected(item);
+    }
 }
