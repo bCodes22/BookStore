@@ -10,7 +10,9 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.bookstoreapp.db.SessionManager;
+// Firebase Auth Imports
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class SplashActivity extends AppCompatActivity {
 
@@ -34,17 +36,20 @@ public class SplashActivity extends AppCompatActivity {
 
         new Handler().postDelayed(() -> {
 
-            SessionManager sessionManager = new SessionManager(SplashActivity.this);
+            // 1. Initialize Firebase Auth
+            FirebaseAuth mAuth = FirebaseAuth.getInstance();
+            FirebaseUser currentUser = mAuth.getCurrentUser();
 
             Intent intent;
 
-            if (sessionManager.isLoggedIn()) {
+            // 2. Check if a persistent user session exists
+            if (currentUser != null) {
                 intent = new Intent(SplashActivity.this, HomeActivity.class);
             } else {
                 intent = new Intent(SplashActivity.this, LoginActivity.class);
             }
 
-            // 🔥 IMPORTANT: clears black screen + back stack issue
+            // 3. Clear the back stack so users can't navigate back to the splash screen
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
             startActivity(intent);
@@ -54,6 +59,7 @@ public class SplashActivity extends AppCompatActivity {
 
         }, SPLASH_DURATION);
     }
+
     @Override
     protected void onRestart() {
         super.onRestart();

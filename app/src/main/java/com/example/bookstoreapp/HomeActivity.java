@@ -2,6 +2,7 @@ package com.example.bookstoreapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -14,21 +15,51 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
-import com.example.bookstoreapp.db.SessionManager;
+// Firebase & Google Auth Imports
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class HomeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private DrawerLayout drawerLayout;
-    private SessionManager sessionManager;
+
+    // Firebase variables
+    private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
+    private GoogleSignInClient mGoogleSignInClient;
+
+    // UI Elements that need dynamic data
+    private TextView tvNavName;
+    private TextView tvWelcome;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        sessionManager = new SessionManager(this);
+        // 1. Initialize Firebase
+        mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
 
+        // Configure Google Sign-In client (required for logging out)
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .build();
+        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+
+        // 2. Security Check: Ensure user is logged in
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            logoutAndRedirect();
+            return;
+        }
+
+        // 3. UI Setup
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -43,18 +74,44 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // Nav header
+        // 4. Setup Nav Header and Welcome Message
         View headerView = navigationView.getHeaderView(0);
-        TextView tvNavName  = headerView.findViewById(R.id.tvNavUserName);
+        tvNavName  = headerView.findViewById(R.id.tvNavUserName);
         TextView tvNavEmail = headerView.findViewById(R.id.tvNavUserEmail);
-        tvNavName.setText(sessionManager.getUserName());
-        tvNavEmail.setText(sessionManager.getUserEmail());
+        tvWelcome = findViewById(R.id.tvWelcome);
 
-        // Welcome message
-        TextView tvWelcome = findViewById(R.id.tvWelcome);
-        tvWelcome.setText("Welcome back,\n" + sessionManager.getUserName() + "! 👋");
+        // Set the email immediately from the Auth token
+        tvNavEmail.setText(currentUser.getEmail());
 
-        // Quick Action cards
+        // Default text while loading
+        tvNavName.setText("Loading...");
+        tvWelcome.setText("Welcome back! 👋");
+
+        // Fetch the user's name from Firestore
+        loadUserData(currentUser.getUid());
+
+        // 5. Quick Action cards
+        setupQuickActionCards();
+    }
+
+    private void loadUserData(String uid) {
+        db.collection("Users").document(uid)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String name = documentSnapshot.getString("name");
+                        if (name != null && !name.isEmpty()) {
+                            tvNavName.setText(name);
+                            tvWelcome.setText("Welcome back,\n" + name + "! 👋");
+                        } else {
+                            tvNavName.setText("User");
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> Log.e("HomeActivity", "Error fetching user data", e));
+    }
+
+    private void setupQuickActionCards() {
         LinearLayout cardBooks    = findViewById(R.id.cardBooks);
         LinearLayout cardOrders   = findViewById(R.id.cardOrders);
         LinearLayout cardWishlist = findViewById(R.id.cardWishlist);
@@ -83,6 +140,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         int id = item.getItemId();
+
         if (id == R.id.nav_home) {
             // Already home
         } else if (id == R.id.nav_profile) {
@@ -94,15 +152,24 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             startActivity(new Intent(this, WishlistActivity.class));
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
         } else if (id == R.id.nav_logout) {
-            sessionManager.logout();
-            Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
-            finish();
+            // 1. Sign out of Firebase
+            mAuth.signOut();
+            // 2. Sign out of Google Client (so they aren't auto-logged into the same account next time)
+            mGoogleSignInClient.signOut().addOnCompleteListener(task -> {
+                logoutAndRedirect();
+            });
         }
+
         drawerLayout.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private void logoutAndRedirect() {
+        Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
+        finish();
     }
 
     @Override

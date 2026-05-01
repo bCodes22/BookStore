@@ -24,7 +24,11 @@
             android:id="@+id/coverFrame"
             android:layout_width="60dp"
             android:layout_height="85dp">
-
+            <ImageView
+                android:id="@+id/ivCoverImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop" />
             <TextView
                 android:id="@+id/tvCoverTitle"
                 android:layout_width="match_parent"
