@@ -143,6 +143,13 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         return bookList.size();
     }
 
+    // Add this method to instantly update the UI with search results
+    public void setFilteredList(List<Book> filteredList) {
+        this.bookList.clear();
+        this.bookList.addAll(filteredList);
+        notifyDataSetChanged();
+    }
+
     static class BookViewHolder extends RecyclerView.ViewHolder {
         View coverFrame;
         ImageView ivCoverImage;
@@ -151,6 +158,7 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         TextView tvAuthor;
         TextView tvPrice;
         TextView tvWishlistToggle;
+
 
         BookViewHolder(@NonNull View itemView) {
             super(itemView);

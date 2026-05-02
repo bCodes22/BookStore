@@ -12,6 +12,8 @@ public class Book {
     private double price;
     private String description;
     private boolean inWishlist;
+    private String genre;
+    private java.util.List<String> ISBN;
 
     public Book() {}
 
@@ -35,4 +37,15 @@ public class Book {
     public void setDescription(String description) { this.description = description; }
     public boolean isInWishlist() { return inWishlist; }
     public void setInWishlist(boolean inWishlist) { this.inWishlist = inWishlist; }
+    public String getGenre() { return genre; }
+    public void setGenre(String title) { this.genre = title; }
+    // Getter
+    public java.util.List<String> getIsbn() {
+        return ISBN;
+    }
+
+    // Setter
+    public void setIsbn(java.util.List<String> isbn) {
+        this.ISBN = ISBN;
+    }
 }

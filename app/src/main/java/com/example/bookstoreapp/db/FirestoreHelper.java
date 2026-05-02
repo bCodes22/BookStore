@@ -34,7 +34,10 @@ public class FirestoreHelper {
         void onSuccess(List<Book> books);
         void onFailure(Exception e);
     }
-
+    public interface OnWishlistIdsLoadedListener {
+        void onSuccess(java.util.Set<String> wishlistIds);
+        void onFailure(Exception e);
+    }
     public interface OnUserLoadedListener {
         void onSuccess(User user);
         void onFailure(Exception e);
@@ -222,6 +225,22 @@ public class FirestoreHelper {
                     java.util.Collections.sort(orders, (o1, o2) -> Long.compare(o2.getOrderDate(), o1.getOrderDate()));
 
                     listener.onSuccess(orders);
+                })
+                .addOnFailureListener(listener::onFailure);
+    }
+    public void getUserWishlistIds(String userId, OnWishlistIdsLoadedListener listener) {
+        db.collection("Wishlist")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(snapshots -> {
+                    java.util.Set<String> ids = new java.util.HashSet<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
+                        String bookId = doc.getString("bookId");
+                        if (bookId != null) {
+                            ids.add(bookId);
+                        }
+                    }
+                    listener.onSuccess(ids);
                 })
                 .addOnFailureListener(listener::onFailure);
     }
