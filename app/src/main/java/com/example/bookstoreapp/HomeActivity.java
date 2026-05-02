@@ -113,18 +113,24 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     private void setupQuickActionCards() {
         LinearLayout cardBooks    = findViewById(R.id.cardBooks);
-        LinearLayout cardOrders   = findViewById(R.id.cardOrders);
+        LinearLayout cardLibrary   = findViewById(R.id.cardLibrary);
         LinearLayout cardWishlist = findViewById(R.id.cardWishlist);
         LinearLayout cardProfile  = findViewById(R.id.cardProfile);
+        LinearLayout cardOrders = findViewById(R.id.cardOrders);
 
         cardBooks.setOnClickListener(v -> {
             startActivity(new Intent(HomeActivity.this, BooksActivity.class));
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
         });
+        cardOrders.setOnClickListener(v -> {
+            startActivity(new Intent(HomeActivity.this, OrdersActivity.class));
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+        });
 
-        cardOrders.setOnClickListener(v ->
-                Toast.makeText(this, "Orders - Coming Soon", Toast.LENGTH_SHORT).show());
-
+        cardLibrary.setOnClickListener(v -> {
+            startActivity(new Intent(HomeActivity.this, LibraryActivity.class));
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+        });
         cardWishlist.setOnClickListener(v -> {
             startActivity(new Intent(HomeActivity.this, WishlistActivity.class));
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
@@ -146,8 +152,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         } else if (id == R.id.nav_profile) {
             startActivity(new Intent(this, ProfileActivity.class));
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
-        } else if (id == R.id.nav_orders) {
-            Toast.makeText(this, "Orders - Coming Soon", Toast.LENGTH_SHORT).show();
+        } else if (id == R.id.nav_library) {
+            startActivity(new Intent(this, LibraryActivity.class));
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
         } else if (id == R.id.nav_wishlist) {
             startActivity(new Intent(this, WishlistActivity.class));
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);

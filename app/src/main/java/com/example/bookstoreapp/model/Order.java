@@ -7,7 +7,7 @@ public class Order {
 
     private String id;
 
-    @PropertyName("UserId")
+    @PropertyName("userId")
     private String userId;
 
     @PropertyName("Items")

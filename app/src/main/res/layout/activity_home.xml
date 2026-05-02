@@ -7,13 +7,11 @@
     android:layout_height="match_parent"
     android:background="@color/bgPrimary">
 
-    <!-- ================= MAIN CONTENT ================= -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Toolbar -->
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
@@ -22,7 +20,6 @@
             android:title="BookStore"
             android:titleTextColor="@color/white" />
 
-        <!-- Content -->
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent">
@@ -33,7 +30,6 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <!-- Welcome Card -->
                 <TextView
                     android:id="@+id/tvWelcome"
                     android:layout_width="match_parent"
@@ -47,7 +43,6 @@
                     android:elevation="4dp"
                     android:layout_marginBottom="20dp"/>
 
-                <!-- Quick Actions Label -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -57,13 +52,11 @@
                     android:textColor="@color/textPrimary"
                     android:layout_marginBottom="10dp"/>
 
-                <!-- Cards Row 1 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <!-- Books Card -->
                     <LinearLayout
                         android:id="@+id/cardBooks"
                         android:layout_width="0dp"
@@ -95,7 +88,6 @@
                         android:layout_width="10dp"
                         android:layout_height="match_parent"/>
 
-                    <!-- Orders Card -->
                     <LinearLayout
                         android:id="@+id/cardOrders"
                         android:layout_width="0dp"
@@ -109,30 +101,61 @@
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground">
 
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:src="@drawable/ic_orders" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📦" 
+                            android:textSize="32sp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Orders"
-                            android:textStyle="bold"
                             android:textColor="@color/textPrimary"
+                            android:textStyle="bold"
                             android:layout_marginTop="8dp"/>
                     </LinearLayout>
 
                 </LinearLayout>
 
-                <!-- Cards Row 2 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:layout_marginTop="12dp">
 
-                    <!-- Wishlist Card -->
+                    <LinearLayout
+                        android:id="@+id/cardLibrary"
+                        android:layout_width="0dp"
+                        android:layout_height="120dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:background="@drawable/bg_card"
+                        android:padding="12dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📚" 
+                            android:textSize="32sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="My Library"
+                            android:textColor="@color/textPrimary"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp"/>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="10dp"
+                        android:layout_height="match_parent"/>
+
                     <LinearLayout
                         android:id="@+id/cardWishlist"
                         android:layout_width="0dp"
@@ -160,11 +183,14 @@
                             android:layout_marginTop="8dp"/>
                     </LinearLayout>
 
-                    <View
-                        android:layout_width="10dp"
-                        android:layout_height="match_parent"/>
+                </LinearLayout>
 
-                    <!-- Profile Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
+
                     <LinearLayout
                         android:id="@+id/cardProfile"
                         android:layout_width="0dp"
@@ -192,6 +218,16 @@
                             android:layout_marginTop="8dp"/>
                     </LinearLayout>
 
+                    <View
+                        android:layout_width="10dp"
+                        android:layout_height="match_parent"/>
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="120dp"
+                        android:layout_weight="1"
+                        android:visibility="invisible"/>
+
                 </LinearLayout>
 
             </LinearLayout>
@@ -199,7 +235,6 @@
 
     </LinearLayout>
 
-    <!-- ================= NAVIGATION DRAWER ================= -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="wrap_content"

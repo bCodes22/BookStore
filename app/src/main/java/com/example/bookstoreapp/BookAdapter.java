@@ -26,19 +26,22 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
     private final String userId;
     private final FirestoreHelper dbHelper;
     private final OnBookClickListener clickListener;
+    private final java.util.Set<String> ownedBookIds;
 
+    // ADD THIS INTERFACE BACK IN
     public interface OnBookClickListener {
         void onBookClick(Book book);
     }
 
-    public BookAdapter(Context context, List<Book> bookList, String userId, OnBookClickListener listener) {
+    // Your single, correct constructor
+    public BookAdapter(Context context, List<Book> bookList, String userId, java.util.Set<String> ownedBookIds, OnBookClickListener listener) {
         this.context = context;
         this.bookList = bookList;
         this.userId = userId;
+        this.ownedBookIds = ownedBookIds;
         this.dbHelper = new FirestoreHelper();
         this.clickListener = listener;
     }
-
     @NonNull
     @Override
     public BookViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -53,7 +56,13 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         // 1. Load Text Data
         holder.tvTitle.setText(book.getTitle());
         holder.tvAuthor.setText(book.getAuthor());
-        holder.tvPrice.setText(String.format("$%.2f", book.getPrice()));
+        if (ownedBookIds != null && ownedBookIds.contains(book.getId())) {
+            holder.tvPrice.setText("OWNED");
+            holder.tvPrice.setTextColor(Color.parseColor("#4CAF50")); // A nice green color
+        } else {
+            holder.tvPrice.setText(String.format("$%.2f", book.getPrice()));
+            holder.tvPrice.setTextColor(context.getResources().getColor(R.color.accentColor)); // Or whatever your default color is
+        }
 
         // 2. Load Cover Image with Glide (FIXED: getImageUrl())
         if (book.getimageUrl() != null && !book.getimageUrl().isEmpty()) {

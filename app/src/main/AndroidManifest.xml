@@ -20,6 +20,7 @@
             android:exported="false"
             android:theme="@style/Theme.BookstoreApp" />
         <activity android:name=".CartActivity" />
+        <activity android:name=".OrdersActivity" />
         <activity android:name=".SplashActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,6 +29,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".ProfileActivity" />
+        <activity android:name=".LibraryActivity" />
         <activity android:name=".WishlistActivity" />
         <activity android:name=".BooksActivity" />
     </application>

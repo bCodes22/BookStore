@@ -24,13 +24,14 @@ public class BooksActivity extends AppCompatActivity implements BookAdapter.OnBo
     private RecyclerView rvBooks;
     private TextView tvBookCount;
     private FirestoreHelper dbHelper;
-
-    // We use FirebaseAuth now instead of SessionManager
     private FirebaseAuth mAuth;
 
-    // Keep a reference to the adapter and list so we can update them when data arrives
     private BookAdapter adapter;
     private List<Book> bookList;
+
+    // Class variables clean up
+    private String userId;
+    private java.util.Set<String> userOwnedIds = new java.util.HashSet<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,7 +47,7 @@ public class BooksActivity extends AppCompatActivity implements BookAdapter.OnBo
 
         // 2. Initialize Firebase
         mAuth = FirebaseAuth.getInstance();
-        dbHelper = new FirestoreHelper(); // No longer needs 'this' context
+        dbHelper = new FirestoreHelper();
 
         // Safety check: ensure user is actually logged in
         FirebaseUser currentUser = mAuth.getCurrentUser();
@@ -56,48 +57,64 @@ public class BooksActivity extends AppCompatActivity implements BookAdapter.OnBo
             return;
         }
 
-        // Get the secure string UID from Firebase Auth
-        String userId = currentUser.getUid();
+        // 3. Save the UID to the class variable (no "String" prefix)
+        userId = currentUser.getUid();
 
-        // 3. Setup Views
+        // 4. Setup Views
         rvBooks     = findViewById(R.id.rvBooks);
         tvBookCount = findViewById(R.id.tvBookCount);
 
         rvBooks.setLayoutManager(new GridLayoutManager(this, 3));
 
-        // 4. Initialize an empty adapter immediately so the screen doesn't stay blank
+        // 5. Initialize an empty adapter immediately so the screen doesn't stay blank
         bookList = new ArrayList<>();
-        adapter = new BookAdapter(this, bookList, userId, this);
+        adapter = new BookAdapter(this, bookList, userId, new java.util.HashSet<>(), this);
         rvBooks.setAdapter(adapter);
 
-        // 5. Fetch the real data
-        loadBooksFromFirestore();
+        // 6. Fetch the real data
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // This fires every time the screen becomes visible!
+        if (userId != null && !userId.isEmpty()) {
+            loadBooksFromFirestore();
+        }
     }
 
     private void loadBooksFromFirestore() {
-        // Show a temporary loading message
         tvBookCount.setText("Loading books...");
 
-        // Use the callback interface we built in FirestoreHelper
-        dbHelper.getAllBooks(new FirestoreHelper.OnBooksLoadedListener() {
+        // 1. Fetch the Owned IDs first
+        dbHelper.getUserLibrary(userId, new FirestoreHelper.OnLibraryLoadedListener() {
             @Override
-            public void onSuccess(List<Book> books) {
-                // Clear the empty list and add all the fresh books from the cloud
-                bookList.clear();
-                bookList.addAll(books);
+            public void onSuccess(List<Book> ownedBooks, java.util.Set<String> ownedBookIds) {
+                userOwnedIds = ownedBookIds; // Save them
 
-                // Tell the adapter to redraw the screen
-                adapter.notifyDataSetChanged();
+                // 2. NOW fetch the main catalog
+                dbHelper.getAllBooks(new FirestoreHelper.OnBooksLoadedListener() {
+                    @Override
+                    public void onSuccess(List<Book> books) {
+                        bookList.clear();
+                        bookList.addAll(books);
 
-                // Update the count UI
-                tvBookCount.setText(books.size() + " books available");
+                        // Recreate the adapter with the new owned IDs
+                        adapter = new BookAdapter(BooksActivity.this, bookList, userId, userOwnedIds, BooksActivity.this);
+                        rvBooks.setAdapter(adapter);
+
+                        tvBookCount.setText(books.size() + " books available");
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        Toast.makeText(BooksActivity.this, "Failed to load catalog.", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
 
             @Override
             public void onFailure(Exception e) {
-                Log.e("BooksActivity", "Error loading books", e);
-                Toast.makeText(BooksActivity.this, "Failed to load books. Check your connection.", Toast.LENGTH_LONG).show();
-                tvBookCount.setText("0 books available");
+                Toast.makeText(BooksActivity.this, "Failed to load user library.", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -105,14 +122,8 @@ public class BooksActivity extends AppCompatActivity implements BookAdapter.OnBo
     @Override
     public void onBookClick(Book book) {
         Intent intent = new Intent(this, BookDetailActivity.class);
-
-        // Pass the Firestore document ID to the next screen
-        // We will use this ID to fetch the full book details from the database
         intent.putExtra("BOOK_ID", book.getId());
-
         startActivity(intent);
-
-        // Keep your smooth transitions!
         overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
     }
 
@@ -128,6 +139,7 @@ public class BooksActivity extends AppCompatActivity implements BookAdapter.OnBo
         super.onBackPressed();
         overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
     }
+
     // 1. This method draws the menu onto the Toolbar
     @Override
     public boolean onCreateOptionsMenu(android.view.Menu menu) {
@@ -139,15 +151,11 @@ public class BooksActivity extends AppCompatActivity implements BookAdapter.OnBo
     @Override
     public boolean onOptionsItemSelected(android.view.MenuItem item) {
         if (item.getItemId() == R.id.action_cart) {
-            // User clicked the cart icon!
-            android.content.Intent intent = new android.content.Intent(this, CartActivity.class);
+            Intent intent = new Intent(this, CartActivity.class);
             startActivity(intent);
-            // Optional: add your slide animations here
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
             return true;
         }
-
-        // This handles the default back arrow if it exists
         return super.onOptionsItemSelected(item);
     }
 }

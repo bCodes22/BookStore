@@ -44,7 +44,14 @@ public class FirestoreHelper {
         void onSuccess();
         void onFailure(Exception e);
     }
-
+    public interface OnLibraryLoadedListener {
+        void onSuccess(List<Book> ownedBooks, java.util.Set<String> ownedBookIds);
+        void onFailure(Exception e);
+    }
+    public interface OnOrdersLoadedListener {
+        void onSuccess(List<com.example.bookstoreapp.model.Order> orders);
+        void onFailure(Exception e);
+    }
     // ── Books ──────────────────────────────────────────────────────────────
 
     public void getAllBooks(OnBooksLoadedListener listener) {
@@ -172,5 +179,50 @@ public class FirestoreHelper {
                         }
                     }
                 });
+    }
+    // Add this method to fetch the owned books
+    public void getUserLibrary(String userId, OnLibraryLoadedListener listener) {
+        db.collection("Orders")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(snapshots -> {
+                    // Use a Map to prevent duplicates if they bought the same book twice
+                    java.util.Map<String, Book> uniqueBooks = new java.util.HashMap<>();
+                    java.util.Set<String> ownedIds = new java.util.HashSet<>();
+
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
+                        com.example.bookstoreapp.model.Order order = doc.toObject(com.example.bookstoreapp.model.Order.class);
+                        if (order != null && order.getItems() != null) {
+                            for (Book book : order.getItems()) {
+                                uniqueBooks.put(book.getId(), book);
+                                ownedIds.add(book.getId());
+                            }
+                        }
+                    }
+                    // Return both the full books (for the Library) and just the IDs (for the Store UI)
+                    listener.onSuccess(new java.util.ArrayList<>(uniqueBooks.values()), ownedIds);
+                })
+                .addOnFailureListener(listener::onFailure);
+    }
+    public void getUserOrders(String userId, OnOrdersLoadedListener listener) {
+        db.collection("Orders")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(snapshots -> {
+                    List<com.example.bookstoreapp.model.Order> orders = new java.util.ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
+                        com.example.bookstoreapp.model.Order order = doc.toObject(com.example.bookstoreapp.model.Order.class);
+                        if (order != null) {
+                            order.setId(doc.getId());
+                            orders.add(order);
+                        }
+                    }
+
+                    // Sort newest to oldest
+                    java.util.Collections.sort(orders, (o1, o2) -> Long.compare(o2.getOrderDate(), o1.getOrderDate()));
+
+                    listener.onSuccess(orders);
+                })
+                .addOnFailureListener(listener::onFailure);
     }
 }

@@ -116,9 +116,16 @@ public class CartActivity extends AppCompatActivity {
         dbHelper.placeOrder(newOrder, new FirestoreHelper.OnActionListener() {
             @Override
             public void onSuccess() {
-                // 3. Clear the local cart and update UI
+                // 3. Clear the local cart
                 CartManager.getInstance().clearCart();
                 Toast.makeText(CartActivity.this, "Order Placed Successfully!", Toast.LENGTH_LONG).show();
+
+                // 4. Redirect them straight to their new receipt!
+                android.content.Intent intent = new android.content.Intent(CartActivity.this, OrdersActivity.class);
+                // This flag ensures that if they hit the "back" button, they don't go back into the empty cart
+                intent.setFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+
                 finish(); // Close the cart screen
             }
 
